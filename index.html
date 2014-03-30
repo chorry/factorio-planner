@@ -1,33 +1,47 @@
 <!DOCTYPE html>
-<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
-<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
-<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
-    <head>
-        <meta charset="utf-8">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <title></title>
-        <meta name="description" content="">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
+<html data-ng-app="FpApp">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title></title>
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
-        <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
+    <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
 
-        <link rel="stylesheet" href="css/normalize.css">
-        <link rel="stylesheet" href="css/main.css">
-        <script src="js/vendor/modernizr-2.6.2.min.js"></script>
-    </head>
-    <body>
-        <!-- Add your site or application content here -->
-        <div id="container">
-            <canvas id="grid_canvas" width="400" height="400"></canvas>
+    <link rel="stylesheet" href="css/normalize.css">
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/fp.css">
+
+    <script src="js/vendor/modernizr-2.6.2.min.js"></script>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+    <script>window.jQuery || document.write('<script src="js/vendor/jquery-1.10.2.min.js"><\/script>')</script>
+    <script src="js/plugins.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/vendor/angular-1.3.0.b4.min.js"></script>
+
+
+</head>
+<body>
+<!-- Add your site or application content here -->
+<div id="container">
+    <canvas id="grid_canvas" width="400" height="400"></canvas>
+    <div data-ng-controller="RepoController" id="objectsPanel">
+        <h3>{{ repoObjects.length }} objects</h3>
+        <p>Selected: {{selectedObject.name}}</p>
+        <div class="repoItem"
+             data-ng-click="setSelected(obj)"
+             data-ng-repeat="obj in repoObjects">{{ obj.name }}
         </div>
-        <div id="obj_panel">
+    </div>
 
-        </div>
-        <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
-        <script>window.jQuery || document.write('<script src="js/vendor/jquery-1.10.2.min.js"><\/script>')</script>
-        <script src="js/plugins.js"></script>
-        <script src="js/main.js"></script>
-        <script src="coffee/grid.js"></script>
-    </body>
+</div>
+
+<script src="coffee/grid.js"></script>
+
+<script src="coffee/fpApp.js"></script>
+<script src="coffee/repo.js"></script>
+
+
+</body>
 </html>

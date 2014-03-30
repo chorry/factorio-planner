@@ -153,7 +153,28 @@ class ObjectContainer
     set: (s) -> @object.size = s
 
   setContent:(d) ->
+    console.debug("obj", @object, d)
+    if @object.transport? == true && d.transportable
+      console.log('transport')
+      @object.setContent(d)
+      return
+    if @object.terrain? == true && d.terrainable
+      console.log('terraint')
+      @object.setContent(d)
+      return
+
+    if d.type != 'Terrain' &&
+      @object = new ObjectGeneric()
+    else
+      @object = new ObjectTerrain()
+      @updateNewObject()
+
     @object.setContent(d)
+    return
+
+  updateNewObject:() ->
+    @setX(@x)
+    @setY(@y)
 
   getUpdateCoords: () ->
     return @object.getUpdateCoords()
@@ -167,16 +188,32 @@ class ObjectContainer
   setY: (@y) ->
     @object.y = @y
 
+class ObjectGeneric
+  constructor: () ->
+    @direction = 'l2r'
+    @size = 1
+
+  setContent: (d) ->
+    @content = d
+    if d.size?
+      @size = d.size.w
+
+  getUpdateCoords: () ->
+    return [
+      { 'x': @x, 'y': @y, 'color': @content[0] },
+    ]
+
 class ObjectTerrain
   constructor: () ->
     @direction = 'l2r'
     @content = [ 'rgba(0,0,0,1)', 'rgba(0,0,0,1)', 'rgba(0,0,0,1)', 'rgba(0,0,0,1)' ]
     @directionDict = 'lefttop': 0, 'leftbottom': 2, 'righttop': 1, 'rightbottom' : 3
     @size = 0.5
+    @terrain = true
 
   setContent: (d) ->
     if d.direction?
-      @content[ @directionDict[d.direction] ] = d.value
+      @content[ @directionDict[d.direction] ] = d.color
     else
       @content = d
 
@@ -197,7 +234,7 @@ class ObjectTransporter
 
   setContent: (d) ->
     if d.direction?
-      @content[ @directionDict[d.direction] ] = d.value
+      @content[ @directionDict[d.direction] ] = d.color
     else
       @content = d
 
@@ -235,11 +272,18 @@ EventedClass.bind('cgrid_click', (e) =>
     quY = 'bottom'
     updY = cellY + 0.5
 
-  data = value: 'rgba(90,90,90,0.5)', direction: quX+quY, size: 'w':1, 'h': 1
-  window.gApp.cgrid
-  #window.gApp.gridCanvas.updateCell( window.gApp.CCanvas.getContext(), updX, updY, window.gApp.grid.cellSize/2, 'rgbc(0,105,105,0.3)')
-  window.gApp.grid.updateCellContainer( cellX, cellY, data)
+  if angular.element('#objectsPanel').scope().selectedObject == 'undefined'
+    return
+  obj = angular.element('#objectsPanel').scope().selectedObject
+  obj.direction = quX+quY
+  obj.size = 'w': obj.w, 'h': obj.h
+
+  console.debug(obj)
+  window.gApp.grid.updateCellContainer( cellX, cellY, obj)
 )
 
 $(document).ready ->
   window.gApp = new App()
+
+SimpleController: ($scope) ->
+  $scope.names = ['Dave', 'Napur', 'Heedy', 'Shriva']

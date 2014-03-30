@@ -1,0 +1,19 @@
+#grid_canvas {
+    float: left;
+}
+
+
+
+#objectsPanel {
+    float: left;
+    border: 1px solid darkslateblue;
+}
+
+.repoItem {
+    float: left;
+    min-width: 40px;
+    min-height: 40px;
+    margin: 5px;
+    border: 1px solid steelblue;
+
+}
