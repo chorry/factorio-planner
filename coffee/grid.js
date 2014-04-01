@@ -86,6 +86,7 @@
         }
       }
       this.gridObjects["" + cellX + "," + cellY].setContent(data);
+      console.debug('grid', this.gridObjects['0,1'].object.content);
       return window.gApp.gridCanvas.updateObject(this.gridObjects["" + cellX + "," + cellY]);
     };
 
@@ -248,14 +249,19 @@
     });
 
     ObjectContainer.prototype.setContent = function(d) {
-      console.debug("obj", this.object, d);
-      if ((this.object.transport != null) === true && d.transportable) {
-        console.log('transport');
+      console.debug("setContent:", this.object, d);
+      if (d.transporter != null) {
+        console.log('replace terrain with transport');
         this.object.setContent(d);
         return;
       }
-      if ((this.object.terrain != null) === true && d.terrainable) {
-        console.log('terraint');
+      if ((this.object.transporter != null) === true && d.transportable) {
+        console.log('update item on a transport belt');
+        this.object.setContent(d);
+        return;
+      }
+      if ((this.object.terrain != null) === true && d.terrainable || d.terrain) {
+        console.debug('terraint', d);
         this.object.setContent(d);
         return;
       }
@@ -325,7 +331,7 @@
   ObjectTerrain = (function() {
     function ObjectTerrain() {
       this.direction = 'l2r';
-      this.content = ['rgba(0,0,0,1)', 'rgba(0,0,0,1)', 'rgba(0,0,0,1)', 'rgba(0,0,0,1)'];
+      this.content = ['rgba(200,200,200,1)', 'rgba(200,200,200,1)', 'rgba(200,200,200,1)', 'rgba(200,200,200,1)'];
       this.directionDict = {
         'lefttop': 0,
         'leftbottom': 2,
@@ -337,10 +343,14 @@
     }
 
     ObjectTerrain.prototype.setContent = function(d) {
-      if (d.direction != null) {
-        return this.content[this.directionDict[d.direction]] = d.color;
+      if (d.terrain) {
+        return this.content = [d.color, d.color, d.color, d.color];
       } else {
-        return this.content = d;
+        if (d.direction != null) {
+          return this.content[this.directionDict[d.direction]] = d.color;
+        } else {
+          return this.content = d;
+        }
       }
     };
 
@@ -453,7 +463,7 @@
         'w': obj.w,
         'h': obj.h
       };
-      console.debug(obj);
+      console.debug('obj for update', obj);
       return window.gApp.grid.updateCellContainer(cellX, cellY, obj);
     };
   })(this));

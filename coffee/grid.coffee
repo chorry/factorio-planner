@@ -43,6 +43,7 @@ class  Grid
           @gridObjects["#{cellX+w},#{cellY+h}"].setContent( 'belongsTo': [w,h] )
 
     @gridObjects["#{cellX},#{cellY}"].setContent(data)
+    console.debug('grid', @gridObjects['0,1'].object.content)
     window.gApp.gridCanvas.updateObject( @gridObjects["#{cellX},#{cellY}"] )
 
 
@@ -153,13 +154,18 @@ class ObjectContainer
     set: (s) -> @object.size = s
 
   setContent:(d) ->
-    console.debug("obj", @object, d)
-    if @object.transport? == true && d.transportable
-      console.log('transport')
+    console.debug("setContent:", @object, d)
+    #drops transporter item onto the ground
+    if d.transporter?
+      console.log('replace terrain with transport')
       @object.setContent(d)
       return
-    if @object.terrain? == true && d.terrainable
-      console.log('terraint')
+    if @object.transporter? == true && d.transportable
+      console.log('update item on a transport belt')
+      @object.setContent(d)
+      return
+    if @object.terrain? == true && d.terrainable || d.terrain
+      console.debug('terraint',d)
       @object.setContent(d)
       return
 
@@ -206,16 +212,20 @@ class ObjectGeneric
 class ObjectTerrain
   constructor: () ->
     @direction = 'l2r'
-    @content = [ 'rgba(0,0,0,1)', 'rgba(0,0,0,1)', 'rgba(0,0,0,1)', 'rgba(0,0,0,1)' ]
+    @content = [ 'rgba(200,200,200,1)', 'rgba(200,200,200,1)', 'rgba(200,200,200,1)', 'rgba(200,200,200,1)' ]
     @directionDict = 'lefttop': 0, 'leftbottom': 2, 'righttop': 1, 'rightbottom' : 3
     @size = 0.5
     @terrain = true
 
   setContent: (d) ->
-    if d.direction?
-      @content[ @directionDict[d.direction] ] = d.color
+    #placing terrain into terrain to erase all terrain content
+    if d.terrain
+      @content = [ d.color, d.color, d.color, d.color ]
     else
-      @content = d
+      if d.direction?
+        @content[ @directionDict[d.direction] ] = d.color
+      else
+        @content = d
 
   getUpdateCoords: () ->
     return [
@@ -278,7 +288,7 @@ EventedClass.bind('cgrid_click', (e) =>
   obj.direction = quX+quY
   obj.size = 'w': obj.w, 'h': obj.h
 
-  console.debug(obj)
+  console.debug('obj for update', obj)
   window.gApp.grid.updateCellContainer( cellX, cellY, obj)
 )
 
