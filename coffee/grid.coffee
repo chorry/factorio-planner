@@ -40,10 +40,15 @@ class  Grid
     if data.size? and (data.size.w >1 || data.size.h > 1)
       for w in [0..data.size.w-1]
         for h in [0..data.size.h-1]
-          @gridObjects["#{cellX+w},#{cellY+h}"].setContent( 'belongsTo': [w,h] )
+          #extender = new ObjectExtender()
+          #extender.setContent( { 'belongsTo': [w,h], 'color': data.color } )
+          extender = { 'belongsTo': [w,h], 'color': data.color, 'type':'Extender' }
+          @gridObjects["#{cellX+w},#{cellY+h}"].setContent( extender )
+          #@gridObjects["#{cellX+w},#{cellY+h}"].setContent( {'belongsTo': [w,h]} )
 
     @gridObjects["#{cellX},#{cellY}"].setContent(data)
     window.gApp.gridCanvas.updateObject( @gridObjects["#{cellX},#{cellY}"] )
+    console.debug(@gridObjects)
 
 
 class GridCanvas
@@ -93,6 +98,12 @@ class GridCanvas
         object.getSize() * window.gApp.grid.cellSize,
         i.color #'rgba(90,90,90,0.3)' #i.resource
       )
+
+  updateCanvas: () ->
+    for obj in @gridObjects
+      if obj.hasChanged
+        obj.hasChanged = false
+        console.debug(obj)
 
 class CCanvas
   constructor: () ->
@@ -152,11 +163,12 @@ class ObjectFactory
     switch cName
       when 'Terrain' then return new ObjectTerrain
       when 'Transporter' then return new ObjectTransporter
+      when 'Extener' then return new ObjectExtender
       else return new ObjectGeneric
 
 class ObjectContainer
   constructor: (@object) ->
-
+    @hasChanged = false
   @property 'size',
     get: -> @object.size
     set: (s) -> @object.size = s
@@ -167,6 +179,8 @@ class ObjectContainer
       @updateNewObject()
     else
       @object.setContent(d)
+      
+    @hasChanged = true
 
   updateNewObject:() ->
     @setX(@x)
@@ -187,7 +201,7 @@ class ObjectContainer
 
 class ObjectGeneric
   """
-  takes whole grid cell, has no contain
+  takes whole grid cell, contains no other objects
   """
   constructor: () ->
     @direction = 'l2r'
@@ -207,6 +221,13 @@ class ObjectGeneric
   getType: () ->
     @type
 
+class ObjectExtender extends ObjectGeneric
+  """
+  For multi-cell objects
+  """
+  setContent: (@content) ->
+
+
 class ObjectMulti extends ObjectGeneric
   constructor: () ->
     super
@@ -223,10 +244,15 @@ class ObjectMulti extends ObjectGeneric
     ]
 
   setContent: (d) ->
+    console.debug('setContent', d)
     if d.direction?
       @content[ @directionDict[d.direction] ] = d.color
     else
-      @content = [d.color,d.color,d.color,d.color]
+      #lame hack for multi-cell objects
+      if d.color?
+        @content = [d.color,d.color,d.color,d.color]
+      else
+        @content = d
 
 class ObjectTerrain extends ObjectMulti
   """
@@ -239,9 +265,10 @@ class ObjectTerrain extends ObjectMulti
     @type = 'Terrain'
 
   setContent: (d) ->
-    #placing terrain into terrain to erase all terrain content
     super
+    #placing terrain into terrain to erase all terrain content
     if d.type == @type
+      console.log('erasing terrain content')
       @content = [ 'rgba(30,90,170,1)','rgba(30,90,170,1)','rgba(30,90,170,1)','rgba(30,90,170,1)']
 
 class ObjectTransporter extends ObjectMulti
