@@ -95,7 +95,7 @@
         }
       }
       this.gridObjects["" + cellX + "," + cellY].setContent(data);
-      window.gApp.gridCanvas.updateObject(this.gridObjects["" + cellX + "," + cellY]);
+      window.gApp.gridCanvas.updateCanvas(this.gridObjects);
       return console.debug(this.gridObjects);
     };
 
@@ -154,18 +154,23 @@
       return _results;
     };
 
-    GridCanvas.prototype.updateCanvas = function() {
-      var obj, _i, _len, _ref, _results;
-      _ref = this.gridObjects;
+    GridCanvas.prototype.updateCanvas = function(gridObjects) {
+      var x, y, _i, _ref, _results;
       _results = [];
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        obj = _ref[_i];
-        if (obj.hasChanged) {
-          obj.hasChanged = false;
-          _results.push(console.debug(obj));
-        } else {
-          _results.push(void 0);
-        }
+      for (x = _i = 0, _ref = window.gApp.grid.width; 0 <= _ref ? _i <= _ref : _i >= _ref; x = 0 <= _ref ? ++_i : --_i) {
+        _results.push((function() {
+          var _j, _ref1, _results1;
+          _results1 = [];
+          for (y = _j = 0, _ref1 = window.gApp.grid.height; 0 <= _ref1 ? _j <= _ref1 : _j >= _ref1; y = 0 <= _ref1 ? ++_j : --_j) {
+            if (gridObjects["" + x + "," + y].hasChanged) {
+              window.gApp.gridCanvas.updateObject(gridObjects["" + x + "," + y]);
+              _results1.push(gridObjects["" + x + "," + y].hasChanged = false);
+            } else {
+              _results1.push(void 0);
+            }
+          }
+          return _results1;
+        })());
       }
       return _results;
     };

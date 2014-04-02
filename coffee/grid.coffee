@@ -47,7 +47,8 @@ class  Grid
           #@gridObjects["#{cellX+w},#{cellY+h}"].setContent( {'belongsTo': [w,h]} )
 
     @gridObjects["#{cellX},#{cellY}"].setContent(data)
-    window.gApp.gridCanvas.updateObject( @gridObjects["#{cellX},#{cellY}"] )
+    #window.gApp.gridCanvas.updateObject( @gridObjects["#{cellX},#{cellY}"] )
+    window.gApp.gridCanvas.updateCanvas( @gridObjects )
     console.debug(@gridObjects)
 
 
@@ -99,11 +100,12 @@ class GridCanvas
         i.color #'rgba(90,90,90,0.3)' #i.resource
       )
 
-  updateCanvas: () ->
-    for obj in @gridObjects
-      if obj.hasChanged
-        obj.hasChanged = false
-        console.debug(obj)
+  updateCanvas: (gridObjects) ->
+    for x in [0..window.gApp.grid.width]
+      for y in [0..window.gApp.grid.height]
+        if gridObjects["#{x},#{y}"].hasChanged
+          window.gApp.gridCanvas.updateObject( gridObjects["#{x},#{y}"] )
+          gridObjects["#{x},#{y}"].hasChanged = false
 
 class CCanvas
   constructor: () ->
@@ -179,7 +181,7 @@ class ObjectContainer
       @updateNewObject()
     else
       @object.setContent(d)
-      
+
     @hasChanged = true
 
   updateNewObject:() ->
