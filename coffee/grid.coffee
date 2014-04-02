@@ -43,7 +43,6 @@ class  Grid
           @gridObjects["#{cellX+w},#{cellY+h}"].setContent( 'belongsTo': [w,h] )
 
     @gridObjects["#{cellX},#{cellY}"].setContent(data)
-    console.debug('grid', @gridObjects['0,1'].object.content)
     window.gApp.gridCanvas.updateObject( @gridObjects["#{cellX},#{cellY}"] )
 
 
@@ -76,6 +75,7 @@ class GridCanvas
 
   updateCell: (ctx, cellX, cellY, cellSize, color) ->
     ctx.fillStyle = color
+
     ctx.fillRect(
       cellX * window.gApp.grid.cellSize,
       cellY * window.gApp.grid.cellSize,
@@ -90,7 +90,7 @@ class GridCanvas
       @updateCell(
         window.gApp.CCanvas.getContext(),
         i.x, i.y,
-        object.size * window.gApp.grid.cellSize,
+        object.getSize() * window.gApp.grid.cellSize,
         i.color #'rgba(90,90,90,0.3)' #i.resource
       )
 
@@ -147,36 +147,26 @@ window.EventedClass = class EventedClass
 Function::property = (prop, desc) ->
   Object.defineProperty @prototype, prop, desc
 
+class ObjectFactory
+  @getClass: (cName) ->
+    switch cName
+      when 'Terrain' then return new ObjectTerrain
+      when 'Transporter' then return new ObjectTransporter
+      else return new ObjectGeneric
+
 class ObjectContainer
   constructor: (@object) ->
+
   @property 'size',
     get: -> @object.size
     set: (s) -> @object.size = s
 
   setContent:(d) ->
-    console.debug("setContent:", @object, d)
-    #drops transporter item onto the ground
-    if d.transporter?
-      console.log('replace terrain with transport')
-      @object.setContent(d)
-      return
-    if @object.transporter? == true && d.transportable
-      console.log('update item on a transport belt')
-      @object.setContent(d)
-      return
-    if @object.terrain? == true && d.terrainable || d.terrain
-      console.debug('terraint',d)
-      @object.setContent(d)
-      return
-
-    if d.type != 'Terrain' &&
-      @object = new ObjectGeneric()
-    else
-      @object = new ObjectTerrain()
+    if d.type != @object.getType() and d.type in ['Terrain','Transporter']
+      @object = ObjectFactory.getClass(d.type)
       @updateNewObject()
-
-    @object.setContent(d)
-    return
+    else
+      @object.setContent(d)
 
   updateNewObject:() ->
     @setX(@x)
@@ -186,6 +176,7 @@ class ObjectContainer
     return @object.getUpdateCoords()
 
   getSize: () ->
+
     return @object.size
 
   setX: (@x) ->
@@ -195,37 +186,33 @@ class ObjectContainer
     @object.y = @y
 
 class ObjectGeneric
+  """
+  takes whole grid cell, has no contain
+  """
   constructor: () ->
     @direction = 'l2r'
     @size = 1
 
   setContent: (d) ->
     @content = d
-    if d.size?
-      @size = d.size.w
+
 
   getUpdateCoords: () ->
     return [
       { 'x': @x, 'y': @y, 'color': @content[0] },
     ]
 
-class ObjectTerrain
-  constructor: () ->
-    @direction = 'l2r'
-    @content = [ 'rgba(200,200,200,1)', 'rgba(200,200,200,1)', 'rgba(200,200,200,1)', 'rgba(200,200,200,1)' ]
-    @directionDict = 'lefttop': 0, 'leftbottom': 2, 'righttop': 1, 'rightbottom' : 3
-    @size = 0.5
-    @terrain = true
+  setType: (@type) ->
 
-  setContent: (d) ->
-    #placing terrain into terrain to erase all terrain content
-    if d.terrain
-      @content = [ d.color, d.color, d.color, d.color ]
-    else
-      if d.direction?
-        @content[ @directionDict[d.direction] ] = d.color
-      else
-        @content = d
+  getType: () ->
+    @type
+
+class ObjectMulti extends ObjectGeneric
+  constructor: () ->
+    super
+    @direction = 'l2r'
+    @size = 0.5
+    @directionDict = 'lefttop': 0, 'leftbottom': 2, 'righttop': 1, 'rightbottom' : 3
 
   getUpdateCoords: () ->
     return [
@@ -234,27 +221,39 @@ class ObjectTerrain
       { 'x': @x, 'y': @y+0.5, 'color': @content[2] },
       { 'x': @x+0.5, 'y': @y+0.5, 'color': @content[3] },
     ]
-
-class ObjectTransporter
-  constructor: () ->
-    @direction = 'l2r'
-    @content = [ 'rgba(0,0,0,1)', 'rgba(0,0,0,1)', 'rgba(0,0,0,1)', 'rgba(0,0,0,1)' ]
-    @directionDict = 'lefttop': 0, 'leftbottom': 2, 'righttop': 1, 'rightbottom' : 3
-    @size = 0.5
 
   setContent: (d) ->
     if d.direction?
       @content[ @directionDict[d.direction] ] = d.color
     else
-      @content = d
+      @content = [d.color,d.color,d.color,d.color]
 
-  getUpdateCoords: () ->
-    return [
-      { 'x': @x, 'y': @y, 'color': @content[0] },
-      { 'x': @x+0.5, 'y': @y, 'color': @content[1] },
-      { 'x': @x, 'y': @y+0.5, 'color': @content[2] },
-      { 'x': @x+0.5, 'y': @y+0.5, 'color': @content[3] },
-    ]
+class ObjectTerrain extends ObjectMulti
+  """
+  takes whole grid cell, is a container
+  """
+  constructor: () ->
+    super
+    @content = [ 'rgba(30,90,170,1)','rgba(30,90,170,1)','rgba(30,90,170,1)','rgba(30,90,170,1)']
+    @terrain = true
+    @type = 'Terrain'
+
+  setContent: (d) ->
+    #placing terrain into terrain to erase all terrain content
+    super
+    if d.type == @type
+      @content = [ 'rgba(30,90,170,1)','rgba(30,90,170,1)','rgba(30,90,170,1)','rgba(30,90,170,1)']
+
+class ObjectTransporter extends ObjectMulti
+  """
+  takes whole grid cell, is a container, rotatable
+  """
+  constructor: () ->
+    super
+    @content = [ 'rgba(100,0,0,1)', 'rgba(100,0,0,1)', 'rgba(100,0,0,1)', 'rgba(100,0,0,1)' ]
+    @transporter = true
+    @type = 'Transporter'
+
 
   #rotate+90   12   -> 31
   #            34      42
