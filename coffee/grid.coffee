@@ -1,3 +1,8 @@
+extend = (object, properties) ->
+  for key, val of properties
+    object[key] = val
+  object
+
 window.App = class App
   constructor: () ->
     @grid = new Grid()
@@ -11,8 +16,8 @@ class  Grid
     @lineColor = 'rgba(0,0,0,1)'
     @cellColor = 'rgbc(255,255,255,1)'
     @bgColor   = 'rgbc(255,255,255,1)'
-    @width     = 20
-    @height    = 20
+    @width     = 4
+    @height    = 4
     @cellSize  = 80
     @gridObjects = {}
     @init()
@@ -179,8 +184,7 @@ class ObjectContainer
     if d.type != @object.getType() and d.type in ['Terrain','Transporter']
       @object = ObjectFactory.getClass(d.type)
       @updateNewObject()
-    else
-      @object.setContent(d)
+    @object.setContent(d)
 
     @hasChanged = true
 
@@ -208,14 +212,15 @@ class ObjectGeneric
   constructor: () ->
     @direction = 'l2r'
     @size = 1
+    @content = { 'color': [null,null,null,null]}
 
   setContent: (d) ->
-    @content = d
+    extend @content, d
 
 
   getUpdateCoords: () ->
     return [
-      { 'x': @x, 'y': @y, 'color': @content[0] },
+      { 'x': @x, 'y': @y, 'color': @content.color[0] },
     ]
 
   setType: (@type) ->
@@ -228,7 +233,7 @@ class ObjectExtender extends ObjectGeneric
   For multi-cell objects
   """
   setContent: (@content) ->
-
+    console.log('ObjExtender.setContent - Not implemented')
 
 class ObjectMulti extends ObjectGeneric
   constructor: () ->
@@ -239,16 +244,27 @@ class ObjectMulti extends ObjectGeneric
 
   getUpdateCoords: () ->
     return [
-      { 'x': @x, 'y': @y, 'color': @content[0] },
-      { 'x': @x+0.5, 'y': @y, 'color': @content[1] },
-      { 'x': @x, 'y': @y+0.5, 'color': @content[2] },
-      { 'x': @x+0.5, 'y': @y+0.5, 'color': @content[3] },
+      { 'x': @x, 'y': @y, 'color': @content.color[0] },
+      { 'x': @x+0.5, 'y': @y, 'color': @content.color[1] },
+      { 'x': @x, 'y': @y+0.5, 'color': @content.color[2] },
+      { 'x': @x+0.5, 'y': @y+0.5, 'color': @content.color[3] },
     ]
 
-  setContent: (d) ->
-    console.debug('setContent', d)
+  setContent: (content) ->
+
+    for key, val of content
+      if key == 'direction'
+        @content.color[ @directionDict[val] ] = content.color
+      else if key == 'color'
+        continue
+      else
+        @content[key] = val
+    
+    console.debug('multi est to', @content)
+    return
+
     if d.direction?
-      @content[ @directionDict[d.direction] ] = d.color
+      @content.color[ @directionDict[d.direction] ] = d.color
     else
       #lame hack for multi-cell objects
       if d.color?
@@ -262,7 +278,7 @@ class ObjectTerrain extends ObjectMulti
   """
   constructor: () ->
     super
-    @content = [ 'rgba(30,90,170,1)','rgba(30,90,170,1)','rgba(30,90,170,1)','rgba(30,90,170,1)']
+    @content.color = [ 'rgba(30,90,170,1)','rgba(30,90,170,1)','rgba(30,90,170,1)','rgba(30,90,170,1)']
     @terrain = true
     @type = 'Terrain'
 
@@ -271,7 +287,7 @@ class ObjectTerrain extends ObjectMulti
     #placing terrain into terrain to erase all terrain content
     if d.type == @type
       console.log('erasing terrain content')
-      @content = [ 'rgba(30,90,170,1)','rgba(30,90,170,1)','rgba(30,90,170,1)','rgba(30,90,170,1)']
+      @content.color = [ 'rgba(30,90,170,1)','rgba(30,90,170,1)','rgba(30,90,170,1)','rgba(30,90,170,1)']
 
 class ObjectTransporter extends ObjectMulti
   """
@@ -279,8 +295,8 @@ class ObjectTransporter extends ObjectMulti
   """
   constructor: () ->
     super
-    @content = [ 'rgba(100,0,0,1)', 'rgba(100,0,0,1)', 'rgba(100,0,0,1)', 'rgba(100,0,0,1)' ]
-    @transporter = true
+    #@content.color = [ 'rgba(100,0,0,1)', 'rgba(100,0,0,1)', 'rgba(100,0,0,1)', 'rgba(100,0,0,1)' ]
+    #@transporter = true
     @type = 'Transporter'
 
 
@@ -288,7 +304,7 @@ class ObjectTransporter extends ObjectMulti
   #            34      42
   #            1234 -> 3142
   rotateItem: () ->
-    @content = [ @content[3], @content[1], @content[4], @content[2] ]
+    @content.color = [ @content.color[3], @content.color[1], @content.color[4], @content.color[2] ]
 
 EventedClass = new EventedClass()
 
