@@ -101,7 +101,7 @@
       }
       this.gridObjects["" + cellX + "," + cellY].setContent(data);
       window.gApp.gridCanvas.updateCanvas(this.gridObjects);
-      return console.debug(this.gridObjects);
+      return console.debug(this.gridObjects['0,0']);
     };
 
     return Grid;
@@ -154,8 +154,8 @@
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         i = _ref[_i];
         console.debug(i);
-        if (i.image != null) {
-          _results.push(window.gApp.CCanvas.loadImageFromFile(window.gApp.CCanvas.getContext(), i.image, i.x, i.y, object.getSize() * window.gApp.grid.cellSize, object.getSize() * window.gApp.grid.cellSize));
+        if (i.icon != null) {
+          _results.push(window.gApp.CCanvas.loadImageFromFile(window.gApp.CCanvas.getContext(), i.icon, i.x * window.gApp.grid.cellSize, i.y * window.gApp.grid.cellSize, object.getSize() * window.gApp.grid.cellSize, object.getSize() * window.gApp.grid.cellSize));
         } else {
           _results.push(this.updateCell(window.gApp.CCanvas.getContext(), i.x, i.y, object.getSize() * window.gApp.grid.cellSize, i.color));
         }
@@ -218,8 +218,9 @@
     CCanvas.prototype.loadImageFromFile = function(ctx, fileName, x, y, w, h) {
       var img;
       img = new Image();
+      console.debug('fname,', fileName);
       img.src = fileName;
-      return ctx.drawImage(img, x, y, w, h);
+      return ctx.drawImage(img, 7, 7, w, h, x, y, w, h);
     };
 
     return CCanvas;
@@ -317,12 +318,16 @@
     });
 
     ObjectContainer.prototype.setContent = function(d) {
-      var _ref;
+      var setContent, _ref;
+      setContent = true;
       if (d.type !== this.object.getType() && ((_ref = d.type) === 'Terrain' || _ref === 'Transporter')) {
+        setContent = false;
         this.object = ObjectFactory.getClass(d.type);
         this.updateNewObject();
       }
-      this.object.setContent(d);
+      if (setContent) {
+        this.object.setContent(d);
+      }
       return this.hasChanged = true;
     };
 
@@ -358,9 +363,7 @@
     function ObjectGeneric() {
       this.direction = 'l2r';
       this.size = 1;
-      this.content = {
-        'color': [null, null, null, null]
-      };
+      this.content = [{}, {}, {}, {}];
     }
 
     ObjectGeneric.prototype.setContent = function(d) {
@@ -372,7 +375,7 @@
         {
           'x': this.x,
           'y': this.y,
-          'color': this.content.color[0]
+          'color': this.content[0].color
         }
       ];
     };
@@ -421,52 +424,48 @@
       };
     }
 
+    ObjectMulti.prototype.resetContent = function() {
+      return this.content = [{}, {}, {}, {}];
+    };
+
     ObjectMulti.prototype.getUpdateCoords = function() {
       return [
         {
           'x': this.x,
           'y': this.y,
-          'color': this.content.color[0],
-          'image': this.content.image
+          'color': this.content[0].color,
+          'image': this.content[0].image,
+          'icon': this.content[0].icon
         }, {
           'x': this.x + 0.5,
           'y': this.y,
-          'color': this.content.color[1]
+          'color': this.content[1].color,
+          'image': this.content[1].image,
+          'icon': this.content[1].icon
         }, {
           'x': this.x,
           'y': this.y + 0.5,
-          'color': this.content.color[2]
+          'color': this.content[2].color,
+          'image': this.content[2].image,
+          'icon': this.content[2].icon
         }, {
           'x': this.x + 0.5,
           'y': this.y + 0.5,
-          'color': this.content.color[3]
+          'color': this.content[3].color,
+          'image': this.content[3].image,
+          'icon': this.content[3].icon
         }
       ];
     };
 
     ObjectMulti.prototype.setContent = function(content) {
-      var key, val;
-      for (key in content) {
-        val = content[key];
-        if (key === 'direction') {
-          this.content.color[this.directionDict[val]] = content.color;
-        } else if (key === 'color') {
-          continue;
-        } else {
-          this.content[key] = val;
-        }
+      var dictKey;
+      dictKey = 0;
+      if (content.direction != null) {
+        dictKey = this.directionDict[content.direction];
       }
-      console.debug('multi est to', this.content);
-      return;
-      if (d.direction != null) {
-        return this.content.color[this.directionDict[d.direction]] = d.color;
-      } else {
-        if (d.color != null) {
-          return this.content = [d.color, d.color, d.color, d.color];
-        } else {
-          return this.content = d;
-        }
-      }
+      this.content[dictKey] = content;
+      console.debug('multi set to', this.content);
     };
 
     return ObjectMulti;
@@ -479,7 +478,10 @@
 
     function ObjectTerrain() {
       ObjectTerrain.__super__.constructor.apply(this, arguments);
-      this.content.color = ['rgba(30,90,170,1)', 'rgba(30,90,170,1)', 'rgba(30,90,170,1)', 'rgba(30,90,170,1)'];
+      this.content[0].color = 'rgba(30,90,170,1)';
+      this.content[1].color = 'rgba(30,90,170,1)';
+      this.content[2].color = 'rgba(30,90,170,1)';
+      this.content[3].color = 'rgba(30,90,170,1)';
       this.terrain = true;
       this.type = 'Terrain';
     }
@@ -488,7 +490,7 @@
       ObjectTerrain.__super__.setContent.apply(this, arguments);
       if (d.type === this.type) {
         console.log('erasing terrain content');
-        return this.content.color = ['rgba(30,90,170,1)', 'rgba(30,90,170,1)', 'rgba(30,90,170,1)', 'rgba(30,90,170,1)'];
+        return this.resetContent;
       }
     };
 
@@ -503,6 +505,8 @@
     function ObjectTransporter() {
       ObjectTransporter.__super__.constructor.apply(this, arguments);
       this.type = 'Transporter';
+      this.image = 'img/entity/basic-transport-belt/basic-transport-belt.png';
+      this.icon = 'img/icons/basic-transport-belt/basic-transport-belt.png';
     }
 
     ObjectTransporter.prototype.rotateItem = function() {
@@ -517,7 +521,7 @@
 
   EventedClass.bind('cgrid_click', (function(_this) {
     return function(e) {
-      var cellX, cellY, obj, qX, qY, quX, quY, updX, updY;
+      var cellX, cellY, obj, qX, qY, quX, quY, updX, updY, _ref;
       cellX = Math.floor(e[0] / window.gApp.grid.cellSize);
       cellY = Math.floor(e[1] / window.gApp.grid.cellSize);
       qX = e[0] - cellX * window.gApp.grid.cellSize;
@@ -540,7 +544,11 @@
         return;
       }
       obj = angular.element('#objectsPanel').scope().selectedObject;
-      obj.direction = quX + quY;
+      if ((_ref = obj.type) === 'Terrain' || _ref === 'Transporter') {
+        obj.direction = quX + quY;
+      } else {
+        obj.direction = 'lefttop';
+      }
       obj.size = {
         'w': obj.w,
         'h': obj.h

@@ -1,7 +1,7 @@
 angular.module('FpApp').factory 'RepoFactory', ->
   class RepoFactory
     @objects = [
-      {name: 'transporter', image: 'img/entity/basic-transport-belt/basic-transport-belt.png', color: 'rgba(90,90,90,1)', w: 1, h: 1, type: 'Transporter', transporter: true},
+      {name: 'transporter', image: 'img/entity/basic-transport-belt/basic-transport-belt.png', icon:'img/icons/basic-transport-belt.png', color: 'rgba(90,90,90,1)', w: 1, h: 1, type: 'Transporter', transporter: true},
       {name: 'terrain', image: true, color: 'rgba(30,90,170,1)', w: 1, h: 1, type: 'Terrain', terrain: true},
 
       {name: 'inserter', image: false, color: 'rgba(120,50,90,1)', w: 1, h: 1, type: 'Inserter', transportable: true}

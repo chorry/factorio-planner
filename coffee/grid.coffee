@@ -50,7 +50,7 @@ class  Grid
 
     @gridObjects["#{cellX},#{cellY}"].setContent(data)
     window.gApp.gridCanvas.updateCanvas( @gridObjects )
-    console.debug(@gridObjects)
+    console.debug(@gridObjects['0,0'])
 
 
 class GridCanvas
@@ -95,10 +95,10 @@ class GridCanvas
   updateObject: (object) ->
     for i in object.getUpdateCoords()
       console.debug(i)
-      if i.image?
+      if i.icon?
         window.gApp.CCanvas.loadImageFromFile(
           window.gApp.CCanvas.getContext(),
-          i.image, i.x, i.y,
+          i.icon, i.x*window.gApp.grid.cellSize, i.y*window.gApp.grid.cellSize,
           object.getSize() * window.gApp.grid.cellSize,
           object.getSize() * window.gApp.grid.cellSize
         )
@@ -141,8 +141,9 @@ class CCanvas
 
   loadImageFromFile: (ctx, fileName, x, y, w, h) ->
     img = new Image()
+    console.debug('fname,' , fileName)
     img.src = fileName
-    ctx.drawImage(img, x, y, w, h)
+    ctx.drawImage(img, 7,7,w,h, x, y, w, h)
 
 window.EventedClass = class EventedClass
   bind: (event, callback) ->
@@ -191,10 +192,13 @@ class ObjectContainer
     set: (s) -> @object.size = s
 
   setContent:(d) ->
+    setContent = true
     if d.type != @object.getType() and d.type in ['Terrain','Transporter']
+      setContent = false
       @object = ObjectFactory.getClass(d.type)
       @updateNewObject()
-    @object.setContent(d)
+    if setContent
+      @object.setContent(d)
 
     @hasChanged = true
 
@@ -222,7 +226,7 @@ class ObjectGeneric
   constructor: () ->
     @direction = 'l2r'
     @size = 1
-    @content = { 'color': [null,null,null,null]}
+    @content = [ {}, {}, {}, {} ]
 
   setContent: (d) ->
     extend @content, d
@@ -230,7 +234,7 @@ class ObjectGeneric
 
   getUpdateCoords: () ->
     return [
-      { 'x': @x, 'y': @y, 'color': @content.color[0] },
+      { 'x': @x, 'y': @y, 'color': @content[0].color },
     ]
 
   setType: (@type) ->
@@ -252,35 +256,25 @@ class ObjectMulti extends ObjectGeneric
     @size = 0.5
     @directionDict = 'lefttop': 0, 'leftbottom': 2, 'righttop': 1, 'rightbottom' : 3
 
+  resetContent: () ->
+    @content = [ {},{},{},{} ]
+
   getUpdateCoords: () ->
     return [
-      { 'x': @x, 'y': @y, 'color': @content.color[0], 'image':@content.image },
-      { 'x': @x+0.5, 'y': @y, 'color': @content.color[1] },
-      { 'x': @x, 'y': @y+0.5, 'color': @content.color[2] },
-      { 'x': @x+0.5, 'y': @y+0.5, 'color': @content.color[3] },
+      { 'x': @x, 'y': @y, 'color': @content[0].color, 'image':@content[0].image, 'icon':@content[0].icon },
+      { 'x': @x+0.5, 'y': @y, 'color': @content[1].color, 'image':@content[1].image, 'icon':@content[1].icon },
+      { 'x': @x, 'y': @y+0.5, 'color': @content[2].color, 'image':@content[2].image, 'icon':@content[2].icon },
+      { 'x': @x+0.5, 'y': @y+0.5, 'color': @content[3].color, 'image':@content[3].image, 'icon':@content[3].icon },
     ]
 
   setContent: (content) ->
+    dictKey = 0
+    if content.direction?
+      dictKey = @directionDict[content.direction]
+    @content[ dictKey ] = content
 
-    for key, val of content
-      if key == 'direction'
-        @content.color[ @directionDict[val] ] = content.color
-      else if key == 'color'
-        continue
-      else
-        @content[key] = val
-
-    console.debug('multi est to', @content)
+    console.debug('multi set to', @content)
     return
-
-    if d.direction?
-      @content.color[ @directionDict[d.direction] ] = d.color
-    else
-      #lame hack for multi-cell objects
-      if d.color?
-        @content = [d.color,d.color,d.color,d.color]
-      else
-        @content = d
 
 class ObjectTerrain extends ObjectMulti
   """
@@ -288,7 +282,10 @@ class ObjectTerrain extends ObjectMulti
   """
   constructor: () ->
     super
-    @content.color = [ 'rgba(30,90,170,1)','rgba(30,90,170,1)','rgba(30,90,170,1)','rgba(30,90,170,1)']
+    @content[0].color = 'rgba(30,90,170,1)'
+    @content[1].color = 'rgba(30,90,170,1)'
+    @content[2].color = 'rgba(30,90,170,1)'
+    @content[3].color = 'rgba(30,90,170,1)'
     @terrain = true
     @type = 'Terrain'
 
@@ -297,7 +294,7 @@ class ObjectTerrain extends ObjectMulti
     #placing terrain into terrain to erase all terrain content
     if d.type == @type
       console.log('erasing terrain content')
-      @content.color = [ 'rgba(30,90,170,1)','rgba(30,90,170,1)','rgba(30,90,170,1)','rgba(30,90,170,1)']
+      @resetContent
 
 class ObjectTransporter extends ObjectMulti
   """
@@ -308,11 +305,14 @@ class ObjectTransporter extends ObjectMulti
     #@content.color = [ 'rgba(100,0,0,1)', 'rgba(100,0,0,1)', 'rgba(100,0,0,1)', 'rgba(100,0,0,1)' ]
     #@transporter = true
     @type = 'Transporter'
+    @image = 'img/entity/basic-transport-belt/basic-transport-belt.png'
+    @icon  = 'img/icons/basic-transport-belt/basic-transport-belt.png'
 
 
   #rotate+90   12   -> 31
   #            34      42
   #            1234 -> 3142
+  #TODO: fix this part
   rotateItem: () ->
     @content.color = [ @content.color[3], @content.color[1], @content.color[4], @content.color[2] ]
 
@@ -339,7 +339,12 @@ EventedClass.bind('cgrid_click', (e) =>
   if angular.element('#objectsPanel').scope().selectedObject == 'undefined'
     return
   obj = angular.element('#objectsPanel').scope().selectedObject
-  obj.direction = quX+quY
+
+  if obj.type in ['Terrain','Transporter']
+    obj.direction = quX+quY
+  else
+    obj.direction = 'lefttop'
+
   obj.size = 'w': obj.w, 'h': obj.h
 
   console.debug('obj for update', obj)

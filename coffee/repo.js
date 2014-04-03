@@ -9,6 +9,7 @@
         {
           name: 'transporter',
           image: 'img/entity/basic-transport-belt/basic-transport-belt.png',
+          icon: 'img/icons/basic-transport-belt.png',
           color: 'rgba(90,90,90,1)',
           w: 1,
           h: 1,
