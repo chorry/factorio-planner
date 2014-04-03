@@ -153,7 +153,12 @@
       _results = [];
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         i = _ref[_i];
-        _results.push(this.updateCell(window.gApp.CCanvas.getContext(), i.x, i.y, object.getSize() * window.gApp.grid.cellSize, i.color));
+        console.debug(i);
+        if (i.image != null) {
+          _results.push(window.gApp.CCanvas.loadImageFromFile(window.gApp.CCanvas.getContext(), i.image, i.x, i.y, object.getSize() * window.gApp.grid.cellSize, object.getSize() * window.gApp.grid.cellSize));
+        } else {
+          _results.push(this.updateCell(window.gApp.CCanvas.getContext(), i.x, i.y, object.getSize() * window.gApp.grid.cellSize, i.color));
+        }
       }
       return _results;
     };
@@ -208,6 +213,13 @@
       x = e.pageX - canvas.offsetLeft;
       y = e.pageY - canvas.offsetTop;
       return EventedClass.trigger('cgrid_click', [x, y, canvas.id]);
+    };
+
+    CCanvas.prototype.loadImageFromFile = function(ctx, fileName, x, y, w, h) {
+      var img;
+      img = new Image();
+      img.src = fileName;
+      return ctx.drawImage(img, x, y, w, h);
     };
 
     return CCanvas;
@@ -414,7 +426,8 @@
         {
           'x': this.x,
           'y': this.y,
-          'color': this.content.color[0]
+          'color': this.content.color[0],
+          'image': this.content.image
         }, {
           'x': this.x + 0.5,
           'y': this.y,

@@ -45,14 +45,10 @@ class  Grid
     if data.size? and (data.size.w >1 || data.size.h > 1)
       for w in [0..data.size.w-1]
         for h in [0..data.size.h-1]
-          #extender = new ObjectExtender()
-          #extender.setContent( { 'belongsTo': [w,h], 'color': data.color } )
           extender = { 'belongsTo': [w,h], 'color': data.color, 'type':'Extender' }
           @gridObjects["#{cellX+w},#{cellY+h}"].setContent( extender )
-          #@gridObjects["#{cellX+w},#{cellY+h}"].setContent( {'belongsTo': [w,h]} )
 
     @gridObjects["#{cellX},#{cellY}"].setContent(data)
-    #window.gApp.gridCanvas.updateObject( @gridObjects["#{cellX},#{cellY}"] )
     window.gApp.gridCanvas.updateCanvas( @gridObjects )
     console.debug(@gridObjects)
 
@@ -98,12 +94,21 @@ class GridCanvas
 
   updateObject: (object) ->
     for i in object.getUpdateCoords()
-      @updateCell(
-        window.gApp.CCanvas.getContext(),
-        i.x, i.y,
-        object.getSize() * window.gApp.grid.cellSize,
-        i.color #'rgba(90,90,90,0.3)' #i.resource
-      )
+      console.debug(i)
+      if i.image?
+        window.gApp.CCanvas.loadImageFromFile(
+          window.gApp.CCanvas.getContext(),
+          i.image, i.x, i.y,
+          object.getSize() * window.gApp.grid.cellSize,
+          object.getSize() * window.gApp.grid.cellSize
+        )
+      else
+        @updateCell(
+          window.gApp.CCanvas.getContext(),
+          i.x, i.y,
+          object.getSize() * window.gApp.grid.cellSize,
+          i.color #'rgba(90,90,90,0.3)' #i.resource
+        )
 
   updateCanvas: (gridObjects) ->
     for x in [0..window.gApp.grid.width]
@@ -133,6 +138,11 @@ class CCanvas
     x = e.pageX - canvas.offsetLeft
     y = e.pageY - canvas.offsetTop
     EventedClass.trigger( 'cgrid_click', [x, y, canvas.id] )
+
+  loadImageFromFile: (ctx, fileName, x, y, w, h) ->
+    img = new Image()
+    img.src = fileName
+    ctx.drawImage(img, x, y, w, h)
 
 window.EventedClass = class EventedClass
   bind: (event, callback) ->
@@ -244,7 +254,7 @@ class ObjectMulti extends ObjectGeneric
 
   getUpdateCoords: () ->
     return [
-      { 'x': @x, 'y': @y, 'color': @content.color[0] },
+      { 'x': @x, 'y': @y, 'color': @content.color[0], 'image':@content.image },
       { 'x': @x+0.5, 'y': @y, 'color': @content.color[1] },
       { 'x': @x, 'y': @y+0.5, 'color': @content.color[2] },
       { 'x': @x+0.5, 'y': @y+0.5, 'color': @content.color[3] },
@@ -259,7 +269,7 @@ class ObjectMulti extends ObjectGeneric
         continue
       else
         @content[key] = val
-    
+
     console.debug('multi est to', @content)
     return
 
