@@ -81,6 +81,10 @@ class GridCanvas
       ctx.stroke()
 
   updateCell: (ctx, cellX, cellY, cellSize, color) ->
+    #TODO: remove when all objects have colors
+    if color == undefined
+      color = 'rgba(150,150,150,1)'
+
     ctx.fillStyle = color
 
     ctx.fillRect(
@@ -193,10 +197,14 @@ class ObjectContainer
 
   setContent:(d) ->
     setContent = true
-    if d.type != @object.getType() and d.type in ['Terrain','Transporter']
+    console.debug('d.type=',d.type)
+    #if d.type != @object.getType() and d.type in ['Terrain','Transporter']
+    if d.type in ['Terrain','Transporter']
       setContent = false
       @object = ObjectFactory.getClass(d.type)
+      console.log('new object')
       @updateNewObject()
+
     if setContent
       @object.setContent(d)
 
@@ -340,19 +348,20 @@ EventedClass.bind('cgrid_click', (e) =>
     return
   obj = angular.element('#objectsPanel').scope().selectedObject
 
-  if obj.type in ['Terrain','Transporter']
+  if obj.type not in ['Terrain','Transporter']
     obj.direction = quX+quY
   else
     obj.direction = 'lefttop'
 
   obj.size = 'w': obj.w, 'h': obj.h
 
-  console.debug('obj for update', obj)
+  console.debug('obj for update', obj, 'direction:', obj.direction)
   window.gApp.grid.updateCellContainer( cellX, cellY, obj)
 )
 
 $(document).ready ->
   window.gApp = new App()
+  window.dGrid = new window.debugGrid()
 
 SimpleController: ($scope) ->
   $scope.names = ['Dave', 'Napur', 'Heedy', 'Shriva']
