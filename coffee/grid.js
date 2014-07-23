@@ -89,6 +89,22 @@
       this.bgColor = bgColor;
     };
 
+    Grid.prototype.getGridObjects = function() {
+      return this.gridObjects;
+    };
+
+    Grid.prototype.scaleUp = function() {
+      window.gApp.grid.cellSize = window.gApp.grid.cellSize / 2;
+      window.gApp.gridCanvas.redrawAfterScale = true;
+      return window.gApp.gridCanvas.updateCanvas(window.gApp.grid.gridObjects);
+    };
+
+    Grid.prototype.scaleDown = function() {
+      window.gApp.grid.cellSize = window.gApp.grid.cellSize * 2;
+      window.gApp.gridCanvas.redrawAfterScale = true;
+      return window.gApp.gridCanvas.updateCanvas(window.gApp.grid.gridObjects);
+    };
+
     Grid.prototype.updateCellContainer = function(cellX, cellY, data) {
       var extender, h, w, _i, _j, _ref, _ref1;
       if ((data.size != null) && (data.size.w > 1 || data.size.h > 1)) {
@@ -172,24 +188,18 @@
     };
 
     GridCanvas.prototype.updateCanvas = function(gridObjects) {
-      var x, y, _i, _ref, _results;
-      _results = [];
+      var x, y, _i, _j, _ref, _ref1;
       for (x = _i = 0, _ref = window.gApp.grid.width; 0 <= _ref ? _i <= _ref : _i >= _ref; x = 0 <= _ref ? ++_i : --_i) {
-        _results.push((function() {
-          var _j, _ref1, _results1;
-          _results1 = [];
-          for (y = _j = 0, _ref1 = window.gApp.grid.height; 0 <= _ref1 ? _j <= _ref1 : _j >= _ref1; y = 0 <= _ref1 ? ++_j : --_j) {
-            if (gridObjects["" + x + "," + y].hasChanged) {
-              window.gApp.gridCanvas.updateObject(gridObjects["" + x + "," + y]);
-              _results1.push(gridObjects["" + x + "," + y].hasChanged = false);
-            } else {
-              _results1.push(void 0);
-            }
+        for (y = _j = 0, _ref1 = window.gApp.grid.height; 0 <= _ref1 ? _j <= _ref1 : _j >= _ref1; y = 0 <= _ref1 ? ++_j : --_j) {
+          if (gridObjects["" + x + "," + y].hasChanged || this.redrawAfterScale) {
+            console.log('redraw', x, y);
+            window.gApp.gridCanvas.updateObject(gridObjects["" + x + "," + y]);
+            gridObjects["" + x + "," + y].hasChanged = false;
           }
-          return _results1;
-        })());
+        }
       }
-      return _results;
+      console.debug('done redraw');
+      return this.redrawAfterScale = false;
     };
 
     return GridCanvas;
@@ -579,7 +589,9 @@
 
   $(document).ready(function() {
     window.gApp = new App();
-    return window.dGrid = new window.debugGrid();
+    window.dGrid = new window.debugGrid();
+    $('#zoom_in').bind('click', window.gApp.grid.scaleDown);
+    return $('#zoom_out').bind('click', window.gApp.grid.scaleUp);
   });
 
   ({

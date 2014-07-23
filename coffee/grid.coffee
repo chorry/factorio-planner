@@ -40,6 +40,18 @@ class  Grid
   setCellColor: (@cellColor) ->
   setBgColor: (@bgColor) ->
 
+  getGridObjects: ->
+    return @gridObjects
+
+  scaleUp:->
+    window.gApp.grid.cellSize = window.gApp.grid.cellSize/2
+    window.gApp.gridCanvas.redrawAfterScale = true
+    window.gApp.gridCanvas.updateCanvas( window.gApp.grid.gridObjects )
+
+  scaleDown: ->
+    window.gApp.grid.cellSize = window.gApp.grid.cellSize*2
+    window.gApp.gridCanvas.redrawAfterScale = true
+    window.gApp.gridCanvas.updateCanvas( window.gApp.grid.gridObjects )
 
   updateCellContainer: (cellX, cellY, data) ->
     if data.size? and (data.size.w >1 || data.size.h > 1)
@@ -114,12 +126,16 @@ class GridCanvas
           i.color #'rgba(90,90,90,0.3)' #i.resource
         )
 
+
   updateCanvas: (gridObjects) ->
     for x in [0..window.gApp.grid.width]
       for y in [0..window.gApp.grid.height]
-        if gridObjects["#{x},#{y}"].hasChanged
+        if gridObjects["#{x},#{y}"].hasChanged || @redrawAfterScale
+          console.log('redraw', x, y)
           window.gApp.gridCanvas.updateObject( gridObjects["#{x},#{y}"] )
           gridObjects["#{x},#{y}"].hasChanged = false
+    console.debug('done redraw')
+    @redrawAfterScale = false
 
 class CCanvas
   constructor: () ->
@@ -318,7 +334,7 @@ class ObjectTransporter extends ObjectMulti
 
 
   #rotate+90   12   -> 31
-  #            34      42
+  #            34   -> 42
   #            1234 -> 3142
   #TODO: fix this part
   rotateItem: () ->
@@ -362,6 +378,9 @@ EventedClass.bind('cgrid_click', (e) =>
 $(document).ready ->
   window.gApp = new App()
   window.dGrid = new window.debugGrid()
+
+  $('#zoom_in').bind('click', window.gApp.grid.scaleDown )
+  $('#zoom_out').bind('click', window.gApp.grid.scaleUp )
 
 SimpleController: ($scope) ->
   $scope.names = ['Dave', 'Napur', 'Heedy', 'Shriva']
