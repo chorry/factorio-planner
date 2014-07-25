@@ -22,9 +22,14 @@ class  Grid
     @gridObjects = {}
     @init()
 
+  getRealWidth: ->
+    @width-1
+  getRealHeight: ->
+    @height-1
+
   init: () ->
-    for x in [0..@width]
-      for y in [0..@height]
+    for x in [0..@getRealWidth()]
+      for y in [0..@getRealHeight()]
           @gridObjects[ "#{x},#{y}" ] = new ObjectContainer( new ObjectTerrain )
           @gridObjects[ "#{x},#{y}" ].setX(x)
           @gridObjects[ "#{x},#{y}" ].setY(y)
@@ -54,21 +59,37 @@ class  Grid
     window.gApp.gridCanvas.updateCanvas( window.gApp.grid.gridObjects )
 
   updateCellContainer: (cellX, cellY, data) ->
-    if data.size? and (data.size.w >1 || data.size.h > 1)
+    tmpObjects = []
+    console.debug(data)
+    if data.size? #and (data.size.w >1 || data.size.h > 1)
       for w in [0..data.size.w-1]
         for h in [0..data.size.h-1]
-          extender = { 'belongsTo': [w,h], 'color': data.color, 'type':'Extender' }
-          @gridObjects["#{cellX+w},#{cellY+h}"].setContent( extender )
+          # check if there is enough space to place object
+          if (data.size.w >1 || data.size.h > 1)
+            for i in [0..3]
+              if @gridObjects["#{cellX+w},#{cellY+h}"].object.content[i].type != undefined
+                #TODO: raise "object already exist there" notice
+                return
+          else
+            direction2val = @gridObjects["#{cellX+w},#{cellY+h}"].object.directionDict[ data.direction ]
+            if @gridObjects["#{cellX+w},#{cellY+h}"].object.content[ direction2val ].type != undefined
+              #TODO: raise "object already exist there" notice
+              return
+
+          extender = { 'belongsTo': [cellX,cellY], 'color': data.color, 'type':'Extender' }
+          tmpObjects["#{cellX+w},#{cellY+h}"] = extender
+
+    for i in Object.keys( tmpObjects )
+      @gridObjects[i].setContent( tmpObjects[i] )
 
     @gridObjects["#{cellX},#{cellY}"].setContent(data)
     window.gApp.gridCanvas.updateCanvas( @gridObjects )
-    console.debug(@gridObjects['0,0'])
 
 
 class GridCanvas
   drawGridLines: (ctx, grid) ->
     ctx.fillStyle = grid.lineColor
-    for lineNumX in [ 0..(grid.width) ]
+    for lineNumX in [ 0..(grid.getRealWidth()) ]
       lineXStart = lineNumX * grid.cellSize
       lineXEnd   = lineXStart
       lineYStart = 0
@@ -80,7 +101,7 @@ class GridCanvas
       ctx.closePath()
       ctx.stroke()
 
-    for lineNumY in [ 0..(grid.width) ]
+    for lineNumY in [ 0..(grid.getRealWidth()) ]
       lineXStart = 0
       lineXEnd   = grid.getWidthPx()
       lineYStart = lineNumY * grid.cellSize
@@ -110,7 +131,6 @@ class GridCanvas
 
   updateObject: (object) ->
     for i in object.getUpdateCoords()
-      console.debug(i)
       if i.icon?
         window.gApp.CCanvas.loadImageFromFile(
           window.gApp.CCanvas.getContext(),
@@ -128,13 +148,11 @@ class GridCanvas
 
 
   updateCanvas: (gridObjects) ->
-    for x in [0..window.gApp.grid.width]
-      for y in [0..window.gApp.grid.height]
+    for x in [0..window.gApp.grid.getRealWidth()]
+      for y in [0..window.gApp.grid.getRealHeight()]
         if gridObjects["#{x},#{y}"].hasChanged || @redrawAfterScale
-          console.log('redraw', x, y)
           window.gApp.gridCanvas.updateObject( gridObjects["#{x},#{y}"] )
           gridObjects["#{x},#{y}"].hasChanged = false
-    console.debug('done redraw')
     @redrawAfterScale = false
 
 class CCanvas
@@ -153,15 +171,23 @@ class CCanvas
   getContext: () ->
     return @ctx
 
+  canvasDown: (e) ->
+    @clickDown = {
+      'x': e.pageX - e.srcElement.offsetLeft,
+      'y': e.pageY - e.srcElement.offsetTop
+    }
+
   canvasUp: (e) ->
     canvas = e.srcElement
     x = e.pageX - canvas.offsetLeft
     y = e.pageY - canvas.offsetTop
-    EventedClass.trigger( 'cgrid_click', [x, y, canvas.id] )
+    if x == @clickDown['x'] and y == @clickDown['y']
+      EventedClass.trigger( 'cgrid_click', [x, y, canvas.id] )
+    else
+      EventedClass.trigger( 'cgrid_drag', [ @clickDown, {'x':x, 'y':y}, canvas.id] )
 
   loadImageFromFile: (ctx, fileName, x, y, w, h) ->
     img = new Image()
-    console.debug('fname,' , fileName)
     img.src = fileName
     ctx.drawImage(img, 7,7,w,h, x, y, w, h)
 
@@ -201,7 +227,7 @@ class ObjectFactory
     switch cName
       when 'Terrain' then return new ObjectTerrain
       when 'Transporter' then return new ObjectTransporter
-      when 'Extener' then return new ObjectExtender
+      when 'Extender' then return new ObjectExtender
       else return new ObjectGeneric
 
 class ObjectContainer
@@ -212,13 +238,15 @@ class ObjectContainer
     set: (s) -> @object.size = s
 
   setContent:(d) ->
+    if d.type == 'destroy'
+      #TODO: destroy existing object
+      return
+
     setContent = true
-    console.debug('d.type=',d.type)
     #if d.type != @object.getType() and d.type in ['Terrain','Transporter']
     if d.type in ['Terrain','Transporter']
       setContent = false
       @object = ObjectFactory.getClass(d.type)
-      console.log('new object')
       @updateNewObject()
 
     if setContent
@@ -297,7 +325,6 @@ class ObjectMulti extends ObjectGeneric
       dictKey = @directionDict[content.direction]
     @content[ dictKey ] = content
 
-    console.debug('multi set to', @content)
     return
 
 class ObjectTerrain extends ObjectMulti

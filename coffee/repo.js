@@ -59,6 +59,9 @@
           type: 'oreCopper',
           transportable: true,
           terrainable: true
+        }, {
+          name: 'destroy',
+          type: 'destroy'
         }
       ];
 

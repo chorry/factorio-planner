@@ -42,14 +42,22 @@
       this.init();
     }
 
+    Grid.prototype.getRealWidth = function() {
+      return this.width - 1;
+    };
+
+    Grid.prototype.getRealHeight = function() {
+      return this.height - 1;
+    };
+
     Grid.prototype.init = function() {
       var x, y, _i, _ref, _results;
       _results = [];
-      for (x = _i = 0, _ref = this.width; 0 <= _ref ? _i <= _ref : _i >= _ref; x = 0 <= _ref ? ++_i : --_i) {
+      for (x = _i = 0, _ref = this.getRealWidth(); 0 <= _ref ? _i <= _ref : _i >= _ref; x = 0 <= _ref ? ++_i : --_i) {
         _results.push((function() {
           var _j, _ref1, _results1;
           _results1 = [];
-          for (y = _j = 0, _ref1 = this.height; 0 <= _ref1 ? _j <= _ref1 : _j >= _ref1; y = 0 <= _ref1 ? ++_j : --_j) {
+          for (y = _j = 0, _ref1 = this.getRealHeight(); 0 <= _ref1 ? _j <= _ref1 : _j >= _ref1; y = 0 <= _ref1 ? ++_j : --_j) {
             this.gridObjects["" + x + "," + y] = new ObjectContainer(new ObjectTerrain);
             this.gridObjects["" + x + "," + y].setX(x);
             _results1.push(this.gridObjects["" + x + "," + y].setY(y));
@@ -106,22 +114,40 @@
     };
 
     Grid.prototype.updateCellContainer = function(cellX, cellY, data) {
-      var extender, h, w, _i, _j, _ref, _ref1;
-      if ((data.size != null) && (data.size.w > 1 || data.size.h > 1)) {
+      var direction2val, extender, h, i, tmpObjects, w, _i, _j, _k, _l, _len, _ref, _ref1, _ref2;
+      tmpObjects = [];
+      console.debug(data);
+      if (data.size != null) {
         for (w = _i = 0, _ref = data.size.w - 1; 0 <= _ref ? _i <= _ref : _i >= _ref; w = 0 <= _ref ? ++_i : --_i) {
           for (h = _j = 0, _ref1 = data.size.h - 1; 0 <= _ref1 ? _j <= _ref1 : _j >= _ref1; h = 0 <= _ref1 ? ++_j : --_j) {
+            if (data.size.w > 1 || data.size.h > 1) {
+              for (i = _k = 0; _k <= 3; i = ++_k) {
+                if (this.gridObjects["" + (cellX + w) + "," + (cellY + h)].object.content[i].type !== void 0) {
+                  return;
+                }
+              }
+            } else {
+              direction2val = this.gridObjects["" + (cellX + w) + "," + (cellY + h)].object.directionDict[data.direction];
+              if (this.gridObjects["" + (cellX + w) + "," + (cellY + h)].object.content[direction2val].type !== void 0) {
+                return;
+              }
+            }
             extender = {
-              'belongsTo': [w, h],
+              'belongsTo': [cellX, cellY],
               'color': data.color,
               'type': 'Extender'
             };
-            this.gridObjects["" + (cellX + w) + "," + (cellY + h)].setContent(extender);
+            tmpObjects["" + (cellX + w) + "," + (cellY + h)] = extender;
           }
         }
       }
+      _ref2 = Object.keys(tmpObjects);
+      for (_l = 0, _len = _ref2.length; _l < _len; _l++) {
+        i = _ref2[_l];
+        this.gridObjects[i].setContent(tmpObjects[i]);
+      }
       this.gridObjects["" + cellX + "," + cellY].setContent(data);
-      window.gApp.gridCanvas.updateCanvas(this.gridObjects);
-      return console.debug(this.gridObjects['0,0']);
+      return window.gApp.gridCanvas.updateCanvas(this.gridObjects);
     };
 
     return Grid;
@@ -135,7 +161,7 @@
     GridCanvas.prototype.drawGridLines = function(ctx, grid) {
       var lineNumX, lineNumY, lineXEnd, lineXStart, lineYEnd, lineYStart, _i, _j, _ref, _ref1, _results;
       ctx.fillStyle = grid.lineColor;
-      for (lineNumX = _i = 0, _ref = grid.width; 0 <= _ref ? _i <= _ref : _i >= _ref; lineNumX = 0 <= _ref ? ++_i : --_i) {
+      for (lineNumX = _i = 0, _ref = grid.getRealWidth(); 0 <= _ref ? _i <= _ref : _i >= _ref; lineNumX = 0 <= _ref ? ++_i : --_i) {
         lineXStart = lineNumX * grid.cellSize;
         lineXEnd = lineXStart;
         lineYStart = 0;
@@ -147,7 +173,7 @@
         ctx.stroke();
       }
       _results = [];
-      for (lineNumY = _j = 0, _ref1 = grid.width; 0 <= _ref1 ? _j <= _ref1 : _j >= _ref1; lineNumY = 0 <= _ref1 ? ++_j : --_j) {
+      for (lineNumY = _j = 0, _ref1 = grid.getRealWidth(); 0 <= _ref1 ? _j <= _ref1 : _j >= _ref1; lineNumY = 0 <= _ref1 ? ++_j : --_j) {
         lineXStart = 0;
         lineXEnd = grid.getWidthPx();
         lineYStart = lineNumY * grid.cellSize;
@@ -177,7 +203,6 @@
       _results = [];
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         i = _ref[_i];
-        console.debug(i);
         if (i.icon != null) {
           _results.push(window.gApp.CCanvas.loadImageFromFile(window.gApp.CCanvas.getContext(), i.icon, i.x * window.gApp.grid.cellSize, i.y * window.gApp.grid.cellSize, object.getSize() * window.gApp.grid.cellSize, object.getSize() * window.gApp.grid.cellSize));
         } else {
@@ -189,16 +214,14 @@
 
     GridCanvas.prototype.updateCanvas = function(gridObjects) {
       var x, y, _i, _j, _ref, _ref1;
-      for (x = _i = 0, _ref = window.gApp.grid.width; 0 <= _ref ? _i <= _ref : _i >= _ref; x = 0 <= _ref ? ++_i : --_i) {
-        for (y = _j = 0, _ref1 = window.gApp.grid.height; 0 <= _ref1 ? _j <= _ref1 : _j >= _ref1; y = 0 <= _ref1 ? ++_j : --_j) {
+      for (x = _i = 0, _ref = window.gApp.grid.getRealWidth(); 0 <= _ref ? _i <= _ref : _i >= _ref; x = 0 <= _ref ? ++_i : --_i) {
+        for (y = _j = 0, _ref1 = window.gApp.grid.getRealHeight(); 0 <= _ref1 ? _j <= _ref1 : _j >= _ref1; y = 0 <= _ref1 ? ++_j : --_j) {
           if (gridObjects["" + x + "," + y].hasChanged || this.redrawAfterScale) {
-            console.log('redraw', x, y);
             window.gApp.gridCanvas.updateObject(gridObjects["" + x + "," + y]);
             gridObjects["" + x + "," + y].hasChanged = false;
           }
         }
       }
-      console.debug('done redraw');
       return this.redrawAfterScale = false;
     };
 
@@ -226,18 +249,33 @@
       return this.ctx;
     };
 
+    CCanvas.prototype.canvasDown = function(e) {
+      return this.clickDown = {
+        'x': e.pageX - e.srcElement.offsetLeft,
+        'y': e.pageY - e.srcElement.offsetTop
+      };
+    };
+
     CCanvas.prototype.canvasUp = function(e) {
       var canvas, x, y;
       canvas = e.srcElement;
       x = e.pageX - canvas.offsetLeft;
       y = e.pageY - canvas.offsetTop;
-      return EventedClass.trigger('cgrid_click', [x, y, canvas.id]);
+      if (x === this.clickDown['x'] && y === this.clickDown['y']) {
+        return EventedClass.trigger('cgrid_click', [x, y, canvas.id]);
+      } else {
+        return EventedClass.trigger('cgrid_drag', [
+          this.clickDown, {
+            'x': x,
+            'y': y
+          }, canvas.id
+        ]);
+      }
     };
 
     CCanvas.prototype.loadImageFromFile = function(ctx, fileName, x, y, w, h) {
       var img;
       img = new Image();
-      console.debug('fname,', fileName);
       img.src = fileName;
       return ctx.drawImage(img, 7, 7, w, h, x, y, w, h);
     };
@@ -312,7 +350,7 @@
           return new ObjectTerrain;
         case 'Transporter':
           return new ObjectTransporter;
-        case 'Extener':
+        case 'Extender':
           return new ObjectExtender;
         default:
           return new ObjectGeneric;
@@ -341,12 +379,13 @@
 
     ObjectContainer.prototype.setContent = function(d) {
       var setContent, _ref;
+      if (d.type === 'destroy') {
+        return;
+      }
       setContent = true;
-      console.debug('d.type=', d.type);
       if ((_ref = d.type) === 'Terrain' || _ref === 'Transporter') {
         setContent = false;
         this.object = ObjectFactory.getClass(d.type);
-        console.log('new object');
         this.updateNewObject();
       }
       if (setContent) {
@@ -492,7 +531,6 @@
         dictKey = this.directionDict[content.direction];
       }
       this.content[dictKey] = content;
-      console.debug('multi set to', this.content);
     };
 
     return ObjectMulti;

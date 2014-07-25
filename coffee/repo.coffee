@@ -7,6 +7,7 @@ angular.module('FpApp').factory 'RepoFactory', ->
       {name: 'factory', image: false, color: 'rgba(120,50,90,1)', w: 3, h: 3, type: 'Factory'}
       {name: 'ironOre', image: false, color: 'rgba(180,50,30,1)', w: 0.5, h: 0.5, type: 'oreIron', transportable: true, terrainable: true}
       {name: 'copperOre', image: false, color: 'rgba(20,0,190,1)', w: 0.5, h: 0.5, type: 'oreCopper', transportable: true, terrainable: true}
+      {name: 'destroy', type: 'destroy'}
     ]
 
     @getObjects: ->
