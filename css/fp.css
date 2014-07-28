@@ -17,3 +17,23 @@
     border: 1px solid steelblue;
 
 }
+
+#container {
+    clear:both;
+}
+
+.d_content {
+    float:left;
+    min-width: 20px;
+    min-height: 20px;
+    margin: 5px;
+    border: 1px solid steelblue;
+}
+
+.d_item {
+    float:left;
+    min-width: 40px;
+    min-height: 40px;
+    margin: 5px;
+    border: 1px solid red;
+}
