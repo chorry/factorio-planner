@@ -59,7 +59,7 @@ class  Grid
     window.gApp.gridCanvas.updateCanvas(window.gApp.grid.gridObjects)
 
   updateCellContainer: (cellX, cellY, data) ->
-    tmpObjects = []
+    updateObjects = false
 
     if (data.type == 'destroy')
       #remove large objects
@@ -77,36 +77,84 @@ class  Grid
 
         for w in [ largeObjectX..(largeObjectX+largeObjectW-1) ]
           for h in [ largeObjectY..(largeObjectY+largeObjectH-1) ]
-            tmpObjects["#{w},#{h}"] = {}
+            updateObjects["#{w},#{h}"] = {}
 
     else if data.size?
-      for w in [0..data.size.w - 1]
-        for h in [0..data.size.h - 1]
-          # check if there is enough space to place object
-          if (data.size.w > 1 || data.size.h > 1)
-            for i in [0..3]
-              if !@gridObjects["#{cellX + w},#{cellY + h}"]? || @gridObjects["#{cellX + w},#{cellY + h}"].object.content[i].type != undefined
-                #TODO: raise "object already exist there" notice
-                return
-
-            extender = { 'belongsTo': [cellX, cellY], 'color': data.color, 'type': 'Extender' }
-            tmpObjects["#{cellX + w},#{cellY + h}"] = extender
-          else
-
-            if @gridObjects["#{cellX + w},#{cellY + h}"].object.content[ 0 ].hasOwnProperty('type') and @gridObjects["#{cellX + w},#{cellY + h}"].object.content[ 0 ].type in [ 'Extender']
-              return
+      updateObjects = @checkObjectBuild(data, @gridObjects["#{cellX},#{cellY}"])
     else
-      console.log('wrong data for cell update?')
+      console.log('wrong size data for cell update?')
       return
 
-    for i in Object.keys(tmpObjects)
-      @gridObjects[i].setContent(tmpObjects[i])
+    console.debug('updateObj:', updateObjects)
+    if updateObjects != []
+      for i in Object.keys(updateObjects)
+        @gridObjects[i].setContent(updateObjects[i])
+        @gridObjects["#{cellX},#{cellY}"].setContent(data)
 
-    @gridObjects["#{cellX},#{cellY}"].setContent(data)
     window.gApp.gridCanvas.updateCanvas(@gridObjects)
 
+  checkObjectDestroy: ( object, place ) ->
+    tmpObjects = []
+    checkObj = @gridObjects["#{place.x},#{place.y}"].object.content[0]
+    if (checkObj.type == 'Extender' || checkObj.size.h > 1 || checkObj.size.w > 1)
+      if checkObj.type == 'Extender'
+        largeObjectX = @gridObjects["#{place.x},#{place.y}"].object.content[0].belongsTo[0]
+        largeObjectY = @gridObjects["#{place.x},#{place.y}"].object.content[0].belongsTo[1]
+      else
+        largeObjectY = cellY
+        largeObjectX = cellX
+
+      largeObjectW = @gridObjects["#{largeObjectX},#{largeObjectY}"].object.content[0].size.w
+      largeObjectH = @gridObjects["#{largeObjectX},#{largeObjectY}"].object.content[0].size.h
+
+      for w in [ largeObjectX..(largeObjectX+largeObjectW-1) ]
+        for h in [ largeObjectY..(largeObjectY+largeObjectH-1) ]
+          tmpObjects["#{w},#{h}"] = {}
+
+    return tmpObjects
+
+  checkObjectBuild: ( object, place ) ->
+    tmpObjects = []
+
+    if object.size.w <= 1 and object.size.h <=1
+      if (place.object.terrain || place.object.terrainable) && ( object.terrainable || object.terrain )
+        tmpObjects["#{place.x},#{place.y}"] = object
+      if (place.object.transporter || place.object.transportable) && object.transportable
+        tmpObjects["#{place.x},#{place.y}"] = object
+
+
+    if object.size.w > 1 || object.size.h > 1
+      for w in [0..object.size.w - 1]
+        for h in [0..object.size.h - 1]
+          for i in [0..3]
+            if !@gridObjects["#{place.x + w},#{place.y + h}"]? || @gridObjects["#{place.x + w},#{place.y + h}"].object.type != 'Terrain' || @gridObjects["#{place.x + w},#{place.y + h}"].object.content[i].type != undefined
+              #TODO: raise "object already exist there" notice
+              return []
+
+          extender = { 'belongsTo': [place.x, place.y], 'color': object.color, 'type': 'Extender' }
+          tmpObjects["#{place.x + w},#{place.y + h}"] = extender
+
+    return tmpObjects
 
 class GridCanvas
+
+  constructor: () ->
+    @displayWidth  = 7
+    @displayHeight = 7
+    @viewPortX = 0
+    @viewPortY = 0
+    @redrawAfterScale = false
+
+  drawDisplayedGrid: (gridObjects) ->
+    for h in [ @viewPortY..(@viewPortY+@displayHeight) ]
+      for w in [ @viewPortX..(@viewPortX+@displayWidth) ]
+        if gridObjects["#{w},#{h}"]?
+          if gridObjects["#{w},#{h}"].hasChanged || @redrawAfterScale
+            @updateObject(gridObjects["#{w},#{h}"])
+            gridObjects["#{w},#{h}"].hasChanged = false
+
+    @redrawAfterScale = false
+
   drawGridLines: (ctx, grid) ->
     ctx.fillStyle = grid.lineColor
     for lineNumX in [ 0..(grid.getRealWidth()) ]
@@ -171,6 +219,9 @@ class GridCanvas
 
 
   updateCanvas: (gridObjects) ->
+    @drawDisplayedGrid(gridObjects)
+    return
+
     for x in [0..window.gApp.grid.getRealWidth()]
       for y in [0..window.gApp.grid.getRealHeight()]
         if gridObjects["#{x},#{y}"].hasChanged || @redrawAfterScale
@@ -389,7 +440,8 @@ class ObjectTransporter extends ObjectMulti
   constructor: () ->
     super
     #@content.color = [ 'rgba(100,0,0,1)', 'rgba(100,0,0,1)', 'rgba(100,0,0,1)', 'rgba(100,0,0,1)' ]
-    #@transporter = true
+    @transporter = true
+    @terrainable = true
     @type = 'Transporter'
     @image = 'img/entity/basic-transport-belt/basic-transport-belt.png'
     @icon = 'img/icons/basic-transport-belt/basic-transport-belt.png'

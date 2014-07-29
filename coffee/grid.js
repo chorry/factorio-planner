@@ -114,8 +114,8 @@
     };
 
     Grid.prototype.updateCellContainer = function(cellX, cellY, data) {
-      var checkObj, extender, h, i, largeObjectH, largeObjectW, largeObjectX, largeObjectY, tmpObjects, w, _i, _j, _k, _l, _len, _m, _n, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
-      tmpObjects = [];
+      var checkObj, h, i, largeObjectH, largeObjectW, largeObjectX, largeObjectY, updateObjects, w, _i, _j, _k, _len, _ref, _ref1, _ref2;
+      updateObjects = false;
       if (data.type === 'destroy') {
         checkObj = this.gridObjects["" + cellX + "," + cellY].object.content[0];
         if (checkObj.type === 'Extender' || checkObj.size.h > 1 || checkObj.size.w > 1) {
@@ -130,43 +130,80 @@
           largeObjectH = this.gridObjects["" + largeObjectX + "," + largeObjectY].object.content[0].size.h;
           for (w = _i = largeObjectX, _ref = largeObjectX + largeObjectW - 1; largeObjectX <= _ref ? _i <= _ref : _i >= _ref; w = largeObjectX <= _ref ? ++_i : --_i) {
             for (h = _j = largeObjectY, _ref1 = largeObjectY + largeObjectH - 1; largeObjectY <= _ref1 ? _j <= _ref1 : _j >= _ref1; h = largeObjectY <= _ref1 ? ++_j : --_j) {
-              tmpObjects["" + w + "," + h] = {};
+              updateObjects["" + w + "," + h] = {};
             }
           }
         }
       } else if (data.size != null) {
-        for (w = _k = 0, _ref2 = data.size.w - 1; 0 <= _ref2 ? _k <= _ref2 : _k >= _ref2; w = 0 <= _ref2 ? ++_k : --_k) {
-          for (h = _l = 0, _ref3 = data.size.h - 1; 0 <= _ref3 ? _l <= _ref3 : _l >= _ref3; h = 0 <= _ref3 ? ++_l : --_l) {
-            if (data.size.w > 1 || data.size.h > 1) {
-              for (i = _m = 0; _m <= 3; i = ++_m) {
-                if ((this.gridObjects["" + (cellX + w) + "," + (cellY + h)] == null) || this.gridObjects["" + (cellX + w) + "," + (cellY + h)].object.content[i].type !== void 0) {
-                  return;
-                }
-              }
-              extender = {
-                'belongsTo': [cellX, cellY],
-                'color': data.color,
-                'type': 'Extender'
-              };
-              tmpObjects["" + (cellX + w) + "," + (cellY + h)] = extender;
-            } else {
-              if (this.gridObjects["" + (cellX + w) + "," + (cellY + h)].object.content[0].hasOwnProperty('type') && ((_ref4 = this.gridObjects["" + (cellX + w) + "," + (cellY + h)].object.content[0].type) === 'Extender')) {
-                return;
-              }
-            }
-          }
-        }
+        updateObjects = this.checkObjectBuild(data, this.gridObjects["" + cellX + "," + cellY]);
       } else {
-        console.log('wrong data for cell update?');
+        console.log('wrong size data for cell update?');
         return;
       }
-      _ref5 = Object.keys(tmpObjects);
-      for (_n = 0, _len = _ref5.length; _n < _len; _n++) {
-        i = _ref5[_n];
-        this.gridObjects[i].setContent(tmpObjects[i]);
+      console.debug('updateObj:', updateObjects);
+      if (updateObjects !== []) {
+        _ref2 = Object.keys(updateObjects);
+        for (_k = 0, _len = _ref2.length; _k < _len; _k++) {
+          i = _ref2[_k];
+          this.gridObjects[i].setContent(updateObjects[i]);
+          this.gridObjects["" + cellX + "," + cellY].setContent(data);
+        }
       }
-      this.gridObjects["" + cellX + "," + cellY].setContent(data);
       return window.gApp.gridCanvas.updateCanvas(this.gridObjects);
+    };
+
+    Grid.prototype.checkObjectDestroy = function(object, place) {
+      var checkObj, h, largeObjectH, largeObjectW, largeObjectX, largeObjectY, tmpObjects, w, _i, _j, _ref, _ref1;
+      tmpObjects = [];
+      checkObj = this.gridObjects["" + place.x + "," + place.y].object.content[0];
+      if (checkObj.type === 'Extender' || checkObj.size.h > 1 || checkObj.size.w > 1) {
+        if (checkObj.type === 'Extender') {
+          largeObjectX = this.gridObjects["" + place.x + "," + place.y].object.content[0].belongsTo[0];
+          largeObjectY = this.gridObjects["" + place.x + "," + place.y].object.content[0].belongsTo[1];
+        } else {
+          largeObjectY = cellY;
+          largeObjectX = cellX;
+        }
+        largeObjectW = this.gridObjects["" + largeObjectX + "," + largeObjectY].object.content[0].size.w;
+        largeObjectH = this.gridObjects["" + largeObjectX + "," + largeObjectY].object.content[0].size.h;
+        for (w = _i = largeObjectX, _ref = largeObjectX + largeObjectW - 1; largeObjectX <= _ref ? _i <= _ref : _i >= _ref; w = largeObjectX <= _ref ? ++_i : --_i) {
+          for (h = _j = largeObjectY, _ref1 = largeObjectY + largeObjectH - 1; largeObjectY <= _ref1 ? _j <= _ref1 : _j >= _ref1; h = largeObjectY <= _ref1 ? ++_j : --_j) {
+            tmpObjects["" + w + "," + h] = {};
+          }
+        }
+      }
+      return tmpObjects;
+    };
+
+    Grid.prototype.checkObjectBuild = function(object, place) {
+      var extender, h, i, tmpObjects, w, _i, _j, _k, _ref, _ref1;
+      tmpObjects = [];
+      if (object.size.w <= 1 && object.size.h <= 1) {
+        if ((place.object.terrain || place.object.terrainable) && (object.terrainable || object.terrain)) {
+          tmpObjects["" + place.x + "," + place.y] = object;
+        }
+        if ((place.object.transporter || place.object.transportable) && object.transportable) {
+          tmpObjects["" + place.x + "," + place.y] = object;
+        }
+      }
+      if (object.size.w > 1 || object.size.h > 1) {
+        for (w = _i = 0, _ref = object.size.w - 1; 0 <= _ref ? _i <= _ref : _i >= _ref; w = 0 <= _ref ? ++_i : --_i) {
+          for (h = _j = 0, _ref1 = object.size.h - 1; 0 <= _ref1 ? _j <= _ref1 : _j >= _ref1; h = 0 <= _ref1 ? ++_j : --_j) {
+            for (i = _k = 0; _k <= 3; i = ++_k) {
+              if ((this.gridObjects["" + (place.x + w) + "," + (place.y + h)] == null) || this.gridObjects["" + (place.x + w) + "," + (place.y + h)].object.type !== 'Terrain' || this.gridObjects["" + (place.x + w) + "," + (place.y + h)].object.content[i].type !== void 0) {
+                return [];
+              }
+            }
+            extender = {
+              'belongsTo': [place.x, place.y],
+              'color': object.color,
+              'type': 'Extender'
+            };
+            tmpObjects["" + (place.x + w) + "," + (place.y + h)] = extender;
+          }
+        }
+      }
+      return tmpObjects;
     };
 
     return Grid;
@@ -175,7 +212,28 @@
 
   GridCanvas = (function() {
 
-    function GridCanvas() {}
+    function GridCanvas() {
+      this.displayWidth = 7;
+      this.displayHeight = 7;
+      this.viewPortX = 0;
+      this.viewPortY = 0;
+      this.redrawAfterScale = false;
+    }
+
+    GridCanvas.prototype.drawDisplayedGrid = function(gridObjects) {
+      var h, w, _i, _j, _ref, _ref1, _ref2, _ref3;
+      for (h = _i = _ref = this.viewPortY, _ref1 = this.viewPortY + this.displayHeight; _ref <= _ref1 ? _i <= _ref1 : _i >= _ref1; h = _ref <= _ref1 ? ++_i : --_i) {
+        for (w = _j = _ref2 = this.viewPortX, _ref3 = this.viewPortX + this.displayWidth; _ref2 <= _ref3 ? _j <= _ref3 : _j >= _ref3; w = _ref2 <= _ref3 ? ++_j : --_j) {
+          if (gridObjects["" + w + "," + h] != null) {
+            if (gridObjects["" + w + "," + h].hasChanged || this.redrawAfterScale) {
+              this.updateObject(gridObjects["" + w + "," + h]);
+              gridObjects["" + w + "," + h].hasChanged = false;
+            }
+          }
+        }
+      }
+      return this.redrawAfterScale = false;
+    };
 
     GridCanvas.prototype.drawGridLines = function(ctx, grid) {
       var lineNumX, lineNumY, lineXEnd, lineXStart, lineYEnd, lineYStart, _i, _j, _ref, _ref1, _results;
@@ -235,6 +293,8 @@
 
     GridCanvas.prototype.updateCanvas = function(gridObjects) {
       var x, y, _i, _j, _ref, _ref1;
+      this.drawDisplayedGrid(gridObjects);
+      return;
       for (x = _i = 0, _ref = window.gApp.grid.getRealWidth(); 0 <= _ref ? _i <= _ref : _i >= _ref; x = 0 <= _ref ? ++_i : --_i) {
         for (y = _j = 0, _ref1 = window.gApp.grid.getRealHeight(); 0 <= _ref1 ? _j <= _ref1 : _j >= _ref1; y = 0 <= _ref1 ? ++_j : --_j) {
           if (gridObjects["" + x + "," + y].hasChanged || this.redrawAfterScale) {
@@ -594,6 +654,8 @@
 
     function ObjectTransporter() {
       ObjectTransporter.__super__.constructor.apply(this, arguments);
+      this.transporter = true;
+      this.terrainable = true;
       this.type = 'Transporter';
       this.image = 'img/entity/basic-transport-belt/basic-transport-belt.png';
       this.icon = 'img/icons/basic-transport-belt/basic-transport-belt.png';

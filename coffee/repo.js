@@ -17,7 +17,9 @@
           w: 1,
           h: 1,
           type: 'Transporter',
-          transporter: true
+          transporter: true,
+          terrainable: true,
+          transportable: true
         }, {
           name: 'terrain',
           image: true,
@@ -33,7 +35,8 @@
           w: 1,
           h: 1,
           type: 'Inserter',
-          transportable: true
+          transportable: true,
+          terrainable: true
         }, {
           name: 'factory',
           image: false,
