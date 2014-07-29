@@ -114,36 +114,55 @@
     };
 
     Grid.prototype.updateCellContainer = function(cellX, cellY, data) {
-      var direction2val, extender, h, i, tmpObjects, w, _i, _j, _k, _l, _len, _ref, _ref1, _ref2;
+      var checkObj, extender, h, i, largeObjectH, largeObjectW, largeObjectX, largeObjectY, tmpObjects, w, _i, _j, _k, _l, _len, _m, _n, _ref, _ref1, _ref2, _ref3, _ref4, _ref5;
       tmpObjects = [];
-      console.debug(data);
-      if (data.size != null) {
-        for (w = _i = 0, _ref = data.size.w - 1; 0 <= _ref ? _i <= _ref : _i >= _ref; w = 0 <= _ref ? ++_i : --_i) {
-          for (h = _j = 0, _ref1 = data.size.h - 1; 0 <= _ref1 ? _j <= _ref1 : _j >= _ref1; h = 0 <= _ref1 ? ++_j : --_j) {
+      if (data.type === 'destroy') {
+        checkObj = this.gridObjects["" + cellX + "," + cellY].object.content[0];
+        if (checkObj.type === 'Extender' || checkObj.size.h > 1 || checkObj.size.w > 1) {
+          if (checkObj.type === 'Extender') {
+            largeObjectX = this.gridObjects["" + cellX + "," + cellY].object.content[0].belongsTo[0];
+            largeObjectY = this.gridObjects["" + cellX + "," + cellY].object.content[0].belongsTo[1];
+          } else {
+            largeObjectY = cellY;
+            largeObjectX = cellX;
+          }
+          largeObjectW = this.gridObjects["" + largeObjectX + "," + largeObjectY].object.content[0].size.w;
+          largeObjectH = this.gridObjects["" + largeObjectX + "," + largeObjectY].object.content[0].size.h;
+          for (w = _i = largeObjectX, _ref = largeObjectX + largeObjectW - 1; largeObjectX <= _ref ? _i <= _ref : _i >= _ref; w = largeObjectX <= _ref ? ++_i : --_i) {
+            for (h = _j = largeObjectY, _ref1 = largeObjectY + largeObjectH - 1; largeObjectY <= _ref1 ? _j <= _ref1 : _j >= _ref1; h = largeObjectY <= _ref1 ? ++_j : --_j) {
+              tmpObjects["" + w + "," + h] = {};
+            }
+          }
+        }
+      } else if (data.size != null) {
+        for (w = _k = 0, _ref2 = data.size.w - 1; 0 <= _ref2 ? _k <= _ref2 : _k >= _ref2; w = 0 <= _ref2 ? ++_k : --_k) {
+          for (h = _l = 0, _ref3 = data.size.h - 1; 0 <= _ref3 ? _l <= _ref3 : _l >= _ref3; h = 0 <= _ref3 ? ++_l : --_l) {
             if (data.size.w > 1 || data.size.h > 1) {
-              for (i = _k = 0; _k <= 3; i = ++_k) {
-                if (this.gridObjects["" + (cellX + w) + "," + (cellY + h)].object.content[i].type !== void 0) {
+              for (i = _m = 0; _m <= 3; i = ++_m) {
+                if ((this.gridObjects["" + (cellX + w) + "," + (cellY + h)] == null) || this.gridObjects["" + (cellX + w) + "," + (cellY + h)].object.content[i].type !== void 0) {
                   return;
                 }
               }
+              extender = {
+                'belongsTo': [cellX, cellY],
+                'color': data.color,
+                'type': 'Extender'
+              };
+              tmpObjects["" + (cellX + w) + "," + (cellY + h)] = extender;
             } else {
-              direction2val = this.gridObjects["" + (cellX + w) + "," + (cellY + h)].object.directionDict[data.direction];
-              if (this.gridObjects["" + (cellX + w) + "," + (cellY + h)].object.content[direction2val].type !== void 0) {
+              if (this.gridObjects["" + (cellX + w) + "," + (cellY + h)].object.content[0].hasOwnProperty('type') && ((_ref4 = this.gridObjects["" + (cellX + w) + "," + (cellY + h)].object.content[0].type) === 'Extender')) {
                 return;
               }
             }
-            extender = {
-              'belongsTo': [cellX, cellY],
-              'color': data.color,
-              'type': 'Extender'
-            };
-            tmpObjects["" + (cellX + w) + "," + (cellY + h)] = extender;
           }
         }
+      } else {
+        console.log('wrong data for cell update?');
+        return;
       }
-      _ref2 = Object.keys(tmpObjects);
-      for (_l = 0, _len = _ref2.length; _l < _len; _l++) {
-        i = _ref2[_l];
+      _ref5 = Object.keys(tmpObjects);
+      for (_n = 0, _len = _ref5.length; _n < _len; _n++) {
+        i = _ref5[_n];
         this.gridObjects[i].setContent(tmpObjects[i]);
       }
       this.gridObjects["" + cellX + "," + cellY].setContent(data);
@@ -196,6 +215,8 @@
       ctx.fill();
       return ctx.stroke();
     };
+
+    GridCanvas.prototype.objectCanBePlaced = function(object) {};
 
     GridCanvas.prototype.updateObject = function(object) {
       var i, _i, _len, _ref, _results;
@@ -612,7 +633,7 @@
       return;
     }
     obj = angular.element('#objectsPanel').scope().selectedObject;
-    if ((_ref = obj.type) !== 'Terrain' && _ref !== 'Transporter') {
+    if ((_ref = obj.type) !== 'Terrain' && _ref !== 'Transporter' && _ref !== 'Factory') {
       obj.direction = quX + quY;
     } else {
       obj.direction = 'lefttop';

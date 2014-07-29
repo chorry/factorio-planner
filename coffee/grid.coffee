@@ -60,22 +60,44 @@ class  Grid
 
   updateCellContainer: (cellX, cellY, data) ->
     tmpObjects = []
-    if data.size? #and (data.size.w >1 || data.size.h > 1)
+
+    if (data.type == 'destroy')
+      #remove large objects
+      checkObj = @gridObjects["#{cellX},#{cellY}"].object.content[0]
+      if (checkObj.type == 'Extender' || checkObj.size.h > 1 || checkObj.size.w > 1)
+        if checkObj.type == 'Extender'
+          largeObjectX = @gridObjects["#{cellX},#{cellY}"].object.content[0].belongsTo[0]
+          largeObjectY = @gridObjects["#{cellX},#{cellY}"].object.content[0].belongsTo[1]
+        else
+          largeObjectY = cellY
+          largeObjectX = cellX
+
+        largeObjectW = @gridObjects["#{largeObjectX},#{largeObjectY}"].object.content[0].size.w
+        largeObjectH = @gridObjects["#{largeObjectX},#{largeObjectY}"].object.content[0].size.h
+
+        for w in [ largeObjectX..(largeObjectX+largeObjectW-1) ]
+          for h in [ largeObjectY..(largeObjectY+largeObjectH-1) ]
+            tmpObjects["#{w},#{h}"] = {}
+
+    else if data.size?
       for w in [0..data.size.w - 1]
         for h in [0..data.size.h - 1]
           # check if there is enough space to place object
           if (data.size.w > 1 || data.size.h > 1)
             for i in [0..3]
-              if @gridObjects["#{cellX + w},#{cellY + h}"].object.content[i].type != undefined
+              if !@gridObjects["#{cellX + w},#{cellY + h}"]? || @gridObjects["#{cellX + w},#{cellY + h}"].object.content[i].type != undefined
                 #TODO: raise "object already exist there" notice
                 return
+
             extender = { 'belongsTo': [cellX, cellY], 'color': data.color, 'type': 'Extender' }
             tmpObjects["#{cellX + w},#{cellY + h}"] = extender
           else
 
             if @gridObjects["#{cellX + w},#{cellY + h}"].object.content[ 0 ].hasOwnProperty('type') and @gridObjects["#{cellX + w},#{cellY + h}"].object.content[ 0 ].type in [ 'Extender']
               return
-
+    else
+      console.log('wrong data for cell update?')
+      return
 
     for i in Object.keys(tmpObjects)
       @gridObjects[i].setContent(tmpObjects[i])
@@ -404,7 +426,7 @@ EventedClass.bind('cgrid_click', (e) =>
     return
   obj = angular.element('#objectsPanel').scope().selectedObject
 
-  if obj.type not in ['Terrain', 'Transporter']
+  if obj.type not in ['Terrain', 'Transporter', 'Factory']
     obj.direction = quX + quY
   else
     obj.direction = 'lefttop'
@@ -412,7 +434,7 @@ EventedClass.bind('cgrid_click', (e) =>
   obj.size =
     'w': obj.w, 'h': obj.h
 
-  #console.debug('obj for update', obj, 'direction:', obj.direction)
+  console.debug('obj for update', obj, 'direction:', obj.direction)
   window.gApp.grid.updateCellContainer(cellX, cellY, obj)
 )
 

@@ -13,7 +13,6 @@ angular.module('FpApp').factory 'RepoFactory', ->
     @getObjects: ->
       return @objects
 
-
 angular.module('FpApp').controller 'RepoController', ($scope, RepoFactory) ->
   $scope.repoObjects = RepoFactory.objects
 
@@ -25,3 +24,9 @@ angular.module('FpApp').controller 'RepoController', ($scope, RepoFactory) ->
 
   $scope.setSelected = (i)->
     $scope.selectedObject = i
+
+  $scope.getObjectByName = (name) ->
+    for obj in $scope.repoObjects
+      if obj.name == name
+        return obj
+    return null

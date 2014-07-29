@@ -88,8 +88,19 @@
       }
       return count;
     };
-    return $scope.setSelected = function(i) {
+    $scope.setSelected = function(i) {
       return $scope.selectedObject = i;
+    };
+    return $scope.getObjectByName = function(name) {
+      var obj, _i, _len, _ref;
+      _ref = $scope.repoObjects;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        obj = _ref[_i];
+        if (obj.name === name) {
+          return obj;
+        }
+      }
+      return null;
     };
   });
 
